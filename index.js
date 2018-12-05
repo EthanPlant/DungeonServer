@@ -12,31 +12,38 @@ server.listen(PORT, () => {
 io.on('connection', (socket) => {
     console.log('Player connected');
     socket.emit('socketID', {id: socket.id});
+
     socket.emit('getPlayers', players);
+
     socket.broadcast.emit('newPlayer', {id: socket.id});
+
     socket.on('playerMoved', (data) => {
         data.id = socket.id;
-        socket.broadcast.emit('playerMoved', data);
 
-        for (let i = 0; i < players; i++) {
+        for (let i = 0; i < players.length; i++) {
+            let oldX = players[i].x;
+            let oldY = players[i].y;
             if (players[i].id == data.id) {
+                players[i].dir = data.dir;
                 players[i].x = data.x;
                 players[i].y = data.y;
-                players[i].dir = data.dir;
-                players[i].state = data.state;
+
+                if (players[i].x !== oldX || players[i].y !== oldY) socket.broadcast.emit('playerMoved', data);
             }
         }
     });
+
     socket.on('disconnect', () => {
         console.log('Player disconected');
         socket.broadcast.emit('playerDisconnected', {id: socket.id});
         for (let i = 0; i < players.length; i++) {
-            if (players[i] == socket.id) {
+            if (players[i].id == socket.id) {
                 players.splice(i, 1);
             }
         }
     });
-    players.push(new Player(socket.id, 0, 0, 0, 'STANDING'));
+
+    players.push(new Player(socket.id, 320, 180, 0));
 });
 
 function Player(id, x, y, dir, state) {
@@ -44,5 +51,4 @@ function Player(id, x, y, dir, state) {
     this.dir = dir;
     this.x = x;
     this.y = y;
-    this.state = state
 }
